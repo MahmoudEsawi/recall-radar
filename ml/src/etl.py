@@ -1,6 +1,6 @@
 """
 ETL Pipeline for NHTSA Data Ingestion and Ground Truth Labeling.
-Maintained by Ghadeer & Aya.
+Maintained by Mahdy (with Ghadeer & Aya).
 """
 
 import os
