@@ -18,35 +18,16 @@ MOCK_ALERTS: List[Dict] = [
             {"factor": "Crash & Rollover Incidents", "detail": "5 loss-of-control crash reports filed", "impact": "Critical"},
             {"factor": "NLP Keyword Cluster", "detail": "Concentration of 'rear toe link fracture' phrases", "impact": "High"}
         ],
+        "sample_complaints": [
+            "While driving 65 mph on the highway, the rear suspension suddenly snapped. Vehicle fishtailed across two lanes.",
+            "Rear toe link fractured without warning. Dealership confirmed part broke while exiting highway ramp.",
+            "Heard loud clunking noise from rear right wheel, then loss of steering alignment and stability control warning."
+        ],
         "official_recall": {
             "recalled": True,
             "recall_date": "2019-12-10",
             "campaign_id": "19V437000",
-            "defect_summary": "Rear toe link fracture leading to steering loss"
-        }
-    },
-    {
-        "entity_id": "honda_civic_2017_airbags",
-        "make": "HONDA",
-        "model": "CIVIC",
-        "year": 2017,
-        "component": "AIR BAGS",
-        "as_of_date": "2019-06",
-        "risk_score": 0.79,
-        "risk_category": "HIGH",
-        "predicted_recall_within_12m": True,
-        "lead_time_months": 6,
-        "complaint_count": 62,
-        "top_risk_factors": [
-            {"factor": "Injury Severity Rate", "detail": "3 reported hospital visits upon non-deployment", "impact": "Critical"},
-            {"factor": "Poisson Regression Spike", "detail": "Volume exceeded statistical baseline by 3.8x", "impact": "High"},
-            {"factor": "Defect Text Pattern", "detail": "K-Means cluster: 'airbag warning light illuminated'", "impact": "Moderate"}
-        ],
-        "official_recall": {
-            "recalled": True,
-            "recall_date": "2019-12-20",
-            "campaign_id": "19V895000",
-            "defect_summary": "Front passenger airbag inflator malfunction"
+            "defect_summary": "Rear toe link fracture leading to loss of steering control and increased crash risk."
         }
     },
     {
@@ -62,15 +43,49 @@ MOCK_ALERTS: List[Dict] = [
         "lead_time_months": 4,
         "complaint_count": 41,
         "top_risk_factors": [
-            {"factor": "Thermal Runaway / Fire", "detail": "7 reports of unattended smoke or combustion while charging", "impact": "Critical"},
-            {"factor": "Linear Trend Slope", "detail": "High positive slope (p-value < 0.001)", "impact": "Critical"},
+            {"factor": "Thermal Runaway / Fire", "detail": "7 reports of smoke or unattended combustion while charging", "impact": "Critical"},
+            {"factor": "Poisson Regression Spike", "detail": "Severe volume deviation (p-value < 0.001)", "impact": "Critical"},
             {"factor": "Safety Classifier Output", "detail": "SVM safety score: 0.98 hazard probability", "impact": "High"}
+        ],
+        "sample_complaints": [
+            "Vehicle was plugged into Level 2 charger in garage. Woke up to heavy smoke and flames from rear underside.",
+            "Car caught fire while parked outside overnight with 100% battery charge. Complete loss of vehicle.",
+            "Battery pack started emitting acrid smoke after fast charging session. Fire department was dispatched."
         ],
         "official_recall": {
             "recalled": True,
             "recall_date": "2020-11-13",
             "campaign_id": "20V701000",
-            "defect_summary": "High-voltage battery fire risk when charged to near full capacity"
+            "defect_summary": "High-voltage battery pack fire risk when charged to full capacity."
+        }
+    },
+    {
+        "entity_id": "honda_civic_2017_airbags",
+        "make": "HONDA",
+        "model": "CIVIC",
+        "year": 2017,
+        "component": "AIR BAGS",
+        "as_of_date": "2019-06",
+        "risk_score": 0.79,
+        "risk_category": "HIGH",
+        "predicted_recall_within_12m": True,
+        "lead_time_months": 6,
+        "complaint_count": 62,
+        "top_risk_factors": [
+            {"factor": "Injury Severity Rate", "detail": "3 reported hospital visits upon non-deployment in frontal collision", "impact": "Critical"},
+            {"factor": "Volume Anomaly", "detail": "Exceeded statistical complaint baseline by 3.8x", "impact": "High"},
+            {"factor": "Defect Text Pattern", "detail": "K-Means cluster: 'airbag warning light illuminated'", "impact": "Moderate"}
+        ],
+        "sample_complaints": [
+            "Involved in head-on collision at 35 mph. Seatbelts locked but steering wheel airbag failed to deploy.",
+            "SRS airbag warning light came on and stayed on. Mechanic stated sensor internal module failure.",
+            "Front passenger airbag did not deploy during accident, resulting in passenger head injury against dashboard."
+        ],
+        "official_recall": {
+            "recalled": True,
+            "recall_date": "2019-12-20",
+            "campaign_id": "19V895000",
+            "defect_summary": "Front passenger airbag inflator malfunction during crash events."
         }
     },
     {
@@ -89,6 +104,10 @@ MOCK_ALERTS: List[Dict] = [
             {"factor": "Complaint Velocity", "detail": "Flat growth over past 6 months", "impact": "Low"},
             {"factor": "Zero Fire/Crash", "detail": "Minor noise complaints with zero safety hazard reports", "impact": "Low"}
         ],
+        "sample_complaints": [
+            "Steering wheel makes slight clicking sound when making sharp turns at low speed.",
+            "Power steering feel is heavier than expected during cold winter mornings."
+        ],
         "official_recall": None
     }
 ]
@@ -102,6 +121,7 @@ MOCK_TIME_MACHINE: Dict[str, Dict] = {
         "component": "SUSPENSION",
         "first_detected_date": "2019-04",
         "official_recall_date": "2019-12-10",
+        "campaign_id": "19V437000",
         "lead_time_months": 8,
         "monthly_timeline": [
             {"month": "2018-09", "complaints": 2, "risk_score": 0.12},
@@ -119,11 +139,69 @@ MOCK_TIME_MACHINE: Dict[str, Dict] = {
             {"month": "2019-09", "complaints": 71, "risk_score": 0.97},
             {"month": "2019-10", "complaints": 77, "risk_score": 0.98},
             {"month": "2019-11", "complaints": 80, "risk_score": 0.98},
-            {"month": "2019-12", "complaints": 84, "risk_score": 0.99}   # Official Recall Announced!
+            {"month": "2019-12", "complaints": 84, "risk_score": 0.99}   # Official Recall!
         ],
         "top_risk_factors": [
             {"factor": "Rear Toe Link Fractures", "detail": "Sudden loss of steering control at highway speeds", "impact": "Critical"},
             {"factor": "Surge Slope", "detail": "Exponential volume growth between Jan-Apr 2019", "impact": "High"}
+        ]
+    },
+    "chevrolet_bolt_2020_electrical": {
+        "entity_id": "chevrolet_bolt_2020_electrical",
+        "make": "CHEVROLET",
+        "model": "BOLT EV",
+        "year": 2020,
+        "component": "ELECTRICAL SYSTEM",
+        "first_detected_date": "2020-07",
+        "official_recall_date": "2020-11-13",
+        "campaign_id": "20V701000",
+        "lead_time_months": 4,
+        "monthly_timeline": [
+            {"month": "2020-01", "complaints": 1, "risk_score": 0.08},
+            {"month": "2020-02", "complaints": 2, "risk_score": 0.12},
+            {"month": "2020-03", "complaints": 3, "risk_score": 0.19},
+            {"month": "2020-04", "complaints": 6, "risk_score": 0.34},
+            {"month": "2020-05", "complaints": 11, "risk_score": 0.58},
+            {"month": "2020-06", "complaints": 19, "risk_score": 0.77},
+            {"month": "2020-07", "complaints": 28, "risk_score": 0.94},  # Alert Triggered!
+            {"month": "2020-08", "complaints": 32, "risk_score": 0.96},
+            {"month": "2020-09", "complaints": 36, "risk_score": 0.97},
+            {"month": "2020-10", "complaints": 39, "risk_score": 0.98},
+            {"month": "2020-11", "complaints": 41, "risk_score": 0.99}   # Official Recall!
+        ],
+        "top_risk_factors": [
+            {"factor": "High Voltage Battery Smoke/Combustion", "detail": "Cell defect causing internal short circuit", "impact": "Critical"},
+            {"factor": "Poisson Surge Ratio", "detail": "Incident rate 6.2x above EV baseline", "impact": "Critical"}
+        ]
+    },
+    "honda_civic_2017_airbags": {
+        "entity_id": "honda_civic_2017_airbags",
+        "make": "HONDA",
+        "model": "CIVIC",
+        "year": 2017,
+        "component": "AIR BAGS",
+        "first_detected_date": "2019-06",
+        "official_recall_date": "2019-12-20",
+        "campaign_id": "19V895000",
+        "lead_time_months": 6,
+        "monthly_timeline": [
+            {"month": "2018-12", "complaints": 3, "risk_score": 0.15},
+            {"month": "2019-01", "complaints": 5, "risk_score": 0.22},
+            {"month": "2019-02", "complaints": 8, "risk_score": 0.31},
+            {"month": "2019-03", "complaints": 14, "risk_score": 0.48},
+            {"month": "2019-04", "complaints": 21, "risk_score": 0.62},
+            {"month": "2019-05", "complaints": 30, "risk_score": 0.71},
+            {"month": "2019-06", "complaints": 39, "risk_score": 0.79},  # Alert Triggered!
+            {"month": "2019-07", "complaints": 45, "risk_score": 0.83},
+            {"month": "2019-08", "complaints": 50, "risk_score": 0.87},
+            {"month": "2019-09", "complaints": 54, "risk_score": 0.89},
+            {"month": "2019-10", "complaints": 58, "risk_score": 0.92},
+            {"month": "2019-11", "complaints": 60, "risk_score": 0.94},
+            {"month": "2019-12", "complaints": 62, "risk_score": 0.96}   # Official Recall!
+        ],
+        "top_risk_factors": [
+            {"factor": "Airbag Deployment Failure", "detail": "Non-deployment in moderate to severe front collisions", "impact": "Critical"},
+            {"factor": "Hospital Injury Rate", "detail": "Head and chest trauma reports", "impact": "High"}
         ]
     }
 }

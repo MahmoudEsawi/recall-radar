@@ -6,7 +6,7 @@ import {
 export default function Sidebar({ activeView, setActiveView }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'alerts', label: 'Active Alerts', icon: TriangleAlert },
+    { id: 'alerts', label: 'Active Alerts', icon: AlertTriangle },
     { id: 'timemachine', label: 'Time Machine', icon: Clock },
   ];
 
