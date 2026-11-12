@@ -1,197 +1,292 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, AlertTriangle, CheckCircle, Calendar, ShieldAlert } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, RotateCcw, ChevronDown } from 'lucide-react';
+import {
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, ReferenceLine
+} from 'recharts';
+
+const CASE_STUDIES = [
+  { id: 'ford_explorer_2016_suspension', label: '2016 Ford Explorer — Suspension' },
+];
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2.5 shadow-lg min-w-[160px]">
+      <div className="text-[11px] font-medium text-zinc-400 mb-1.5 pb-1.5 border-b border-zinc-800">{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center justify-between gap-4 py-0.5">
+          <span className="text-[11px] text-zinc-400">{p.name}</span>
+          <span className="text-[12px] font-medium text-zinc-200 tabular-nums">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function TimeMachineView({ simulationData }) {
-  const [currentStep, setCurrentStep] = useState(7); // Start around alert trigger
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [caseOpen, setCaseOpen] = useState(false);
+  const intervalRef = useRef(null);
 
   const timeline = simulationData?.monthly_timeline || [];
   const maxStep = Math.max(0, timeline.length - 1);
-  const currentMonthData = timeline[currentStep] || {};
+  const current = timeline[step] || {};
 
+  // Playback
   useEffect(() => {
-    let timer;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setCurrentStep((prev) => {
-          if (prev >= maxStep) {
-            setIsPlaying(false);
-            return prev;
-          }
+    if (playing) {
+      intervalRef.current = setInterval(() => {
+        setStep(prev => {
+          if (prev >= maxStep) { setPlaying(false); return prev; }
           return prev + 1;
         });
-      }, 900);
+      }, 800);
     }
-    return () => clearInterval(timer);
-  }, [isPlaying, maxStep]);
+    return () => clearInterval(intervalRef.current);
+  }, [playing, maxStep]);
 
-  const visibleData = timeline.slice(0, currentStep + 1);
-  const isAlertTriggered = currentMonthData.risk_score >= 0.75;
-  const isRecallAnnounced = currentStep === maxStep;
+  // Prepare chart data with risk percentage
+  const chartData = timeline.slice(0, step + 1).map(d => ({
+    ...d,
+    risk_pct: Math.round(d.risk_score * 100),
+  }));
+
+  const riskScore = current.risk_score || 0;
+  const riskPct = Math.round(riskScore * 100);
+
+  // Threshold indicators
+  const isWarning = riskScore >= 0.5;
+  const isCritical = riskScore >= 0.75;
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900 border border-red-500/20 rounded-xl p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/30 mb-2">
-              <ShieldAlert className="w-3.5 h-3.5" />
-              Interactive Simulation
+    <div className="space-y-4">
+      {/* Control Bar */}
+      <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            {/* Case study selector */}
+            <div className="relative">
+              <button
+                onClick={() => setCaseOpen(!caseOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-[12px] font-medium text-zinc-200 hover:border-zinc-600 transition-colors"
+              >
+                {simulationData.year} {simulationData.make} {simulationData.model}
+                <ChevronDown className="w-3 h-3 text-zinc-500" />
+              </button>
             </div>
-            <h2 className="text-2xl font-bold text-white">
-              The "Time Machine" Historical Replay
-            </h2>
-            <p className="text-slate-400 text-sm mt-1">
-              Case Study: <span className="text-white font-medium">{simulationData.year} {simulationData.make} {simulationData.model}</span> ({simulationData.component})
-            </p>
+
+            <div className="h-4 w-px bg-zinc-800" />
+
+            {/* Playback controls */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPlaying(!playing)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+                  playing
+                    ? 'bg-zinc-700 text-zinc-200'
+                    : 'bg-blue-600 text-white hover:bg-blue-500'
+                }`}
+              >
+                {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                {playing ? 'Pause' : 'Play'}
+              </button>
+              <button
+                onClick={() => { setPlaying(false); setStep(0); }}
+                className="p-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+                title="Reset"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-xs transition"
-            >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              {isPlaying ? 'Pause' : 'Play Timeline'}
-            </button>
-            <button
-              onClick={() => { setIsPlaying(false); setCurrentStep(0); }}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition"
-              title="Reset Timeline"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
+          {/* Step indicator */}
+          <div className="flex items-center gap-4 text-[11px]">
+            <div className="text-zinc-500">
+              Step <span className="text-zinc-300 font-medium tabular-nums">{step + 1}</span> of {timeline.length}
+            </div>
+            <div className="text-zinc-500">
+              Month: <span className="text-zinc-200 font-medium">{current.month || '—'}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Simulation Stage */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Timeline Chart */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+      {/* Main content: Chart + Right Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Chart Panel */}
+        <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-semibold text-white">Complaints & Risk Curve Over Time</h3>
-              <p className="text-xs text-slate-400">Monthly consumer filings vs RecallRadar predictive risk score</p>
+              <h3 className="text-[13px] font-semibold text-zinc-200">Complaint Volume & Risk Score</h3>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Monthly progression leading to official recall</p>
             </div>
-            <div className="flex items-center gap-2 font-mono text-xs text-slate-300 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <Calendar className="w-3.5 h-3.5 text-blue-400" />
-              As of: <span className="font-bold text-white">{currentMonthData.month}</span>
+            <div className="flex items-center gap-4 text-[10px] text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-[3px] rounded bg-red-400/70" /> Complaints
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-[3px] rounded bg-blue-400" /> Risk Score
+              </span>
             </div>
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={visibleData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
                 <defs>
-                  <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0}/>
+                  <linearGradient id="complaintsFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} domain={[0, 100]} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-                  labelStyle={{ color: '#e2e8f0', fontWeight: 'bold' }}
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: '#71717a', fontSize: 10 }}
+                  axisLine={{ stroke: '#27272a' }}
+                  tickLine={false}
                 />
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fill: '#71717a', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  domain={[0, 100]}
+                  tick={{ fill: '#71717a', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={v => `${v}%`}
+                />
+                {/* Warning threshold */}
+                <ReferenceLine
+                  yAxisId="right"
+                  y={75}
+                  stroke="#f59e0b"
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.4}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3f3f46', strokeDasharray: '3 3' }} />
                 <Area
+                  yAxisId="left"
                   type="monotone"
                   dataKey="complaints"
+                  name="Complaints"
                   stroke="#ef4444"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#riskGradient)"
-                  name="Monthly Complaints"
+                  strokeWidth={1.5}
+                  fill="url(#complaintsFill)"
+                  strokeOpacity={0.7}
                 />
-              </AreaChart>
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="risk_pct"
+                  name="Risk %"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#3b82f6', stroke: '#09090b', strokeWidth: 2 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Scrubber Slider */}
-          <div className="mt-6 pt-4 border-t border-slate-800">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span>Sep 2018 (Baseline)</span>
-              <span className="font-semibold text-white">{currentMonthData.month}</span>
-              <span>Dec 2019 (Recall)</span>
-            </div>
+          {/* Scrubber */}
+          <div className="mt-4 pt-3 border-t border-zinc-800/40">
             <input
               type="range"
-              min="0"
+              min={0}
               max={maxStep}
-              value={currentStep}
-              onChange={(e) => {
-                setIsPlaying(false);
-                setCurrentStep(Number(e.target.value));
-              }}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+              value={step}
+              onChange={e => { setPlaying(false); setStep(Number(e.target.value)); }}
+              className="w-full"
             />
+            <div className="flex justify-between text-[10px] text-zinc-600 mt-1 tabular-nums">
+              <span>{timeline[0]?.month || ''}</span>
+              <span>{timeline[maxStep]?.month || ''}</span>
+            </div>
           </div>
         </div>
 
-        {/* Live Evaluation Box */}
+        {/* Right Stats Panel */}
         <div className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-              Predictive Diagnostics
-            </h4>
+          {/* Live Risk Gauge */}
+          <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
+            <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-3">
+              Current Risk Assessment
+            </div>
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className={`text-4xl font-bold tabular-nums ${
+                isCritical ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-zinc-300'
+              }`}>
+                {riskPct}
+              </span>
+              <span className="text-sm text-zinc-500">/ 100</span>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden mb-3">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isCritical ? 'bg-red-500' : isWarning ? 'bg-amber-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${riskPct}%` }}
+              />
+            </div>
+            <div className={`text-[11px] font-medium px-2 py-1 rounded inline-block ${
+              isCritical
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                : isWarning
+                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+            }`}>
+              {isCritical ? 'CRITICAL — Recall Likely' : isWarning ? 'ELEVATED — Monitoring' : 'NORMAL'}
+            </div>
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-300 font-medium">Model Risk Score</span>
-                  <span className="font-bold text-white">{(currentMonthData.risk_score * 100).toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      currentMonthData.risk_score >= 0.75
-                        ? 'bg-red-500'
-                        : currentMonthData.risk_score >= 0.45
-                        ? 'bg-yellow-500'
-                        : 'bg-emerald-500'
-                    }`}
-                    style={{ width: `${currentMonthData.risk_score * 100}%` }}
-                  />
-                </div>
+          {/* Stats */}
+          <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4 space-y-3">
+            <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Metrics</div>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-zinc-400">Complaints to date</span>
+                <span className="text-[13px] font-medium text-zinc-200 tabular-nums">
+                  {current.complaints || 0}
+                </span>
               </div>
-
-              <div className="p-3 rounded-lg border bg-slate-950/70 border-slate-800">
-                <div className="text-xs text-slate-400">Total Filings to Date</div>
-                <div className="text-2xl font-bold text-white mt-1">{currentMonthData.complaints} complaints</div>
+              <div className="border-b border-zinc-800/40" />
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-zinc-400">Component</span>
+                <span className="text-[12px] text-zinc-300">{simulationData.component}</span>
               </div>
-
-              {/* Status Alert Badge */}
-              {isAlertTriggered ? (
-                <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-bold">EARLY RECALL WARNING ISSUED</div>
-                    <div className="mt-0.5 text-red-400/90">
-                      Surge detected! System identified dangerous defect pattern.
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 rounded-lg border border-slate-800 bg-slate-950/40 text-slate-400 text-xs flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-slate-500" />
-                  Standard monitoring thresholds active.
-                </div>
-              )}
-
-              {/* Lead Time Victory Banner */}
-              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                <div className="text-xs text-emerald-400 font-medium">Official NHTSA Recall Date</div>
-                <div className="text-sm font-bold text-white mt-0.5">Dec 10, 2019 (Campaign #19V437000)</div>
-                <div className="mt-2 text-xs text-emerald-300 font-semibold flex items-center gap-1.5">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  RecallRadar detected defect 8 months ahead!
-                </div>
+              <div className="border-b border-zinc-800/40" />
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-zinc-400">Early warning</span>
+                <span className="text-[12px] font-medium text-emerald-400">
+                  +{simulationData.lead_time_months || '—'} months
+                </span>
               </div>
             </div>
+          </div>
+
+          {/* Official Recall */}
+          <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-4">
+            <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mb-3">
+              Official NHTSA Recall
+            </div>
+            <div className="text-[12px] text-zinc-300 font-medium">
+              {simulationData.official_recall_date || 'Pending'}
+            </div>
+            {simulationData.top_risk_factors?.map((f, i) => (
+              <div key={i} className="mt-2 text-[11px] text-zinc-500">
+                • {f.factor}: <span className="text-zinc-400">{f.detail}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
