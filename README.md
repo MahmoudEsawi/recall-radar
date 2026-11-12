@@ -20,11 +20,11 @@ RecallRadar processes unstructured consumer safety complaints filed with the NHT
 
 | Name | Role | Core Responsibilities |
 | :--- | :--- | :--- |
-| **Mahmoud** | Full Stack Engineer | System architecture, Time Machine interactive mode, API integration |
-| **Faisal** | Full Stack Engineer | Database design, FastAPI backend routes, React Dashboard UI |
-| **Ghadeer** | AI & NLP Specialist | Text preprocessing, TF-IDF + PCA, K-Means defect clustering, Naive Bayes/SVM safety filter |
-| **Aya** | AI & Time-Series Specialist | Complaint velocity, trend slopes (Linear Regression), Poisson baseline spike detection |
-| **Mahdy** | AI & Modeling Specialist | NHTSA ETL & label matching, predictive classification (Logistic vs RF/GB), temporal validation & Lead Time |
+| **Mahmoud** | Full Stack | System architecture, Time Machine interactive mode, API integration |
+| **Faisal** | Full Stack | Database design, FastAPI backend routes, React Dashboard UI |
+| **Ghadeer** | AI | Text preprocessing, TF-IDF + PCA, K-Means defect clustering, Naive Bayes/SVM safety filter |
+| **Aya** | AI | Complaint velocity, trend slopes (Linear Regression), Poisson baseline spike detection |
+| **Mahdy** | AI | NHTSA ETL & label matching, predictive classification (Logistic vs RF/GB), temporal validation & Lead Time |
 
 ---
 
