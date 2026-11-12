@@ -20,7 +20,7 @@ RecallRadar processes unstructured consumer safety complaints filed with the NHT
 
 | Name | Role | Core Responsibilities |
 | :--- | :--- | :--- |
-| **Mahmoud (Team Leader)** | Full Stack & Lead | System architecture, Time Machine interactive mode, API integration |
+| **Mahmoud** | Full Stack Engineer | System architecture, Time Machine interactive mode, API integration |
 | **Faisal** | Full Stack Engineer | Database design, FastAPI backend routes, React Dashboard UI |
 | **Ghadeer** | AI & NLP Specialist | Text preprocessing, TF-IDF + PCA, K-Means defect clustering, Naive Bayes/SVM safety filter |
 | **Aya** | AI & Time-Series Specialist | Complaint velocity, trend slopes (Linear Regression), Poisson baseline spike detection |
@@ -62,14 +62,14 @@ recall-radar/
 │   │   └── evaluate.py       # Strict temporal split, PR-AUC, Lead Time
 │   ├── artifacts/            # Exported models & vectorizers
 │   └── requirements.txt
-├── backend/                  # Owned by Team Leader & Faisal
+├── backend/                  # Owned by Mahmoud & Faisal
 │   ├── app/
 │   │   ├── main.py           # FastAPI entrypoint
 │   │   ├── schemas.py        # Pydantic contract models
 │   │   ├── mock_data.py      # Seed & mock simulation data
 │   │   └── routes/           # REST endpoints (/alerts, /timemachine, /vehicles)
 │   └── requirements.txt
-└── frontend/                 # Owned by Team Leader & Faisal
+└── frontend/                 # Owned by Mahmoud & Faisal
     ├── src/
     │   ├── components/       # Dashboard, TimeMachine, RiskCard, Charts
     │   ├── services/         # Axios API client

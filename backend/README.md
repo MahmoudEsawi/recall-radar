@@ -1,6 +1,6 @@
 # ⚙️ RecallRadar Backend API
 
-Maintained by **Team Leader & Faisal**.
+Maintained by **Mahmoud & Faisal**.
 
 Powered by **FastAPI** to serve real-time automotive defect risk assessments, fleet alerts, and the interactive Time Machine simulation.
 

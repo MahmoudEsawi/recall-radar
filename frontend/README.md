@@ -1,6 +1,6 @@
 # 🖥️ RecallRadar Frontend
 
-Maintained by **Team Leader & Faisal**.
+Maintained by **Mahmoud & Faisal**.
 
 Interactive dashboard and "Time Machine" historical playback interface built with React, Vite, Tailwind CSS, and Recharts.
 
