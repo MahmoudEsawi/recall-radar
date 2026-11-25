@@ -9,6 +9,7 @@ import argparse
 import urllib.request
 import zipfile
 import pandas as pd
+import numpy as np
 from pathlib import Path
 
 # Paths
@@ -100,14 +101,22 @@ def standardize_complaints(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def filter_eligible_complaints(df: pd.DataFrame) -> pd.DataFrame:
+def filter_eligible_complaints(
+    df: pd.DataFrame,
+    df_rcl: pd.DataFrame
+) -> pd.DataFrame:
     """Keep complaints eligible for 365-day recall labeling."""
 
     df = df.copy()
 
     # Restrict complaints to the validated observation period
     start_date = pd.Timestamp("2010-01-01")
-    end_date = pd.Timestamp("2025-11-12")
+    latest_recall_date = df_rcl["RECALL_DATE"].max()
+
+    if pd.isna(latest_recall_date):
+        raise ValueError("No valid recall dates found.")
+
+    end_date = latest_recall_date - pd.Timedelta(days=365)
 
     date_mask = df["COMPLAINT_DATE"].between(
         start_date, end_date
@@ -162,74 +171,116 @@ def build_labeled_dataset(
     batch_size: int = 10_000,
 ) -> pd.DataFrame:
     """
-    Label complaints 1 when a matching recall occurs 1-365 days later.
-    Keep one row per complaint and process complaints in batches.
+    Label complaints when a matching recall occurs
+    within 1-365 days using searchsorted.
     """
+
     print("Matching complaints with official recalls...")
 
-    keys = ["MAKE_CLEAN", "MODEL_CLEAN", "YEAR_CLEAN", "COMP_MAIN"]
-    recall_cols = keys + ["RECALL_DATE", "CAMPNO", "DESC_DEFECT"]
+    keys = [
+        "MAKE_CLEAN",
+        "MODEL_CLEAN",
+        "YEAR_CLEAN",
+        "COMP_MAIN"
+    ]
+
+    recall_cols = keys + [
+        "RECALL_DATE",
+        "CAMPNO",
+        "DESC_DEFECT"
+    ]
 
     recalls = df_rcl[recall_cols].dropna(
         subset=keys + ["RECALL_DATE"]
     ).copy()
 
-    # Keep recalls sorted so the earliest valid future recall wins.
     recall_groups = {
-        key: group.sort_values("RECALL_DATE")
+        key: group.sort_values(
+            "RECALL_DATE"
+        ).reset_index(drop=True)
         for key, group in recalls.groupby(keys, sort=False)
     }
 
-    results = []
+    labeled = df_cmpl.copy().reset_index(drop=True)
 
-    for start in range(0, len(df_cmpl), batch_size):
-        batch = df_cmpl.iloc[start:start + batch_size].copy()
+    labeled["RECALL_DATE"] = pd.NaT
+    labeled["CAMPNO"] = None
+    labeled["DESC_DEFECT"] = None
+    labeled["DAYS_TO_RECALL"] = np.nan
+    labeled["TARGET_RECALL_12M"] = 0
 
-        batch["RECALL_DATE"] = pd.NaT
-        batch["CAMPNO"] = None
-        batch["DESC_DEFECT"] = None
-        batch["DAYS_TO_RECALL"] = float("nan")
-        batch["TARGET_RECALL_12M"] = 0
+    for key, group in labeled.groupby(keys, sort=False):
 
-        for idx, complaint in batch.iterrows():
-            key = tuple(complaint[col] for col in keys)
+        matches = recall_groups.get(key)
 
-            if any(pd.isna(value) for value in key):
-                continue
+        if matches is None or matches.empty:
+            continue
 
-            matches = recall_groups.get(key)
-            if matches is None:
-                continue
+        group = group.dropna(subset=["COMPLAINT_DATE"])
 
-            complaint_date = complaint["COMPLAINT_DATE"]
-            if pd.isna(complaint_date):
-                continue
+        if group.empty:
+            continue
 
-            future = matches.loc[
-                (matches["RECALL_DATE"] > complaint_date)
-                & (
-                    matches["RECALL_DATE"]
-                    <= complaint_date + pd.Timedelta(days=365)
-                )
-            ]
+        recall_dates = matches["RECALL_DATE"].to_numpy(
+            dtype="datetime64[ns]"
+        )
 
-            if not future.empty:
-                recall = future.iloc[0]
-                days = (recall["RECALL_DATE"] - complaint_date).days
+        complaint_dates = group["COMPLAINT_DATE"].to_numpy(
+            dtype="datetime64[ns]"
+        )
 
-                batch.at[idx, "RECALL_DATE"] = recall["RECALL_DATE"]
-                batch.at[idx, "CAMPNO"] = recall["CAMPNO"]
-                batch.at[idx, "DESC_DEFECT"] = recall["DESC_DEFECT"]
-                batch.at[idx, "DAYS_TO_RECALL"] = days
-                batch.at[idx, "TARGET_RECALL_12M"] = 1
+        positions = np.searchsorted(
+            recall_dates,
+            complaint_dates,
+            side="right"
+        )
 
-        results.append(batch)
-        print(f"Processed {min(start + batch_size, len(df_cmpl)):,} / {len(df_cmpl):,}")
+        valid = positions < len(recall_dates)
 
-    labeled = pd.concat(results, ignore_index=True)
+        if not valid.any():
+            continue
+
+        valid_indices = group.index.to_numpy()[valid]
+        valid_positions = positions[valid]
+
+        days = (
+            recall_dates[valid_positions]
+            - complaint_dates[valid]
+        ) / np.timedelta64(1, "D")
+
+        within_window = (days >= 1) & (days <= 365)
+
+        if not within_window.any():
+            continue
+
+        selected_indices = valid_indices[within_window]
+        selected_positions = valid_positions[within_window]
+
+        selected_recalls = matches.iloc[selected_positions]
+
+        labeled.loc[selected_indices, "RECALL_DATE"] = (
+            selected_recalls["RECALL_DATE"].to_numpy()
+        )
+
+        labeled.loc[selected_indices, "CAMPNO"] = (
+            selected_recalls["CAMPNO"].to_numpy()
+        )
+
+        labeled.loc[selected_indices, "DESC_DEFECT"] = (
+            selected_recalls["DESC_DEFECT"].to_numpy()
+        )
+
+        labeled.loc[selected_indices, "DAYS_TO_RECALL"] = (
+            days[within_window]
+        )
+
+        labeled.loc[selected_indices, "TARGET_RECALL_12M"] = 1
 
     print(f"Total labeled records: {len(labeled):,}")
-    print(f"Positive recall rate: {labeled['TARGET_RECALL_12M'].mean():.4f}")
+    print(
+        f"Positive recall rate: "
+        f"{labeled['TARGET_RECALL_12M'].mean():.4f}"
+    )
 
     return labeled
 
@@ -270,7 +321,7 @@ def main():
     df_cmpl = load_complaints_sample(complaints_zip, nrows=None)
 
     # Keep only complaints eligible for 12-month labeling
-    df_cmpl = filter_eligible_complaints(df_cmpl)
+    df_cmpl = filter_eligible_complaints(df_cmpl, df_rcl)
     if args.sample:
         df_cmpl = df_cmpl.head(25000).copy()
         print(f"Selected {len(df_cmpl):,} eligible complaints for testing.")
